@@ -1,0 +1,9 @@
+{
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "editor.formatOnSave": false,
+  "search.exclude": {
+    "**/node_modules": true
+  }
+}

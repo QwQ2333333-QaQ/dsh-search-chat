@@ -1,0 +1,49 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (relative) => readFileSync(join(root, relative), 'utf8')
+
+test('package manifest declares the bundle, client and compatibility', () => {
+  const manifest = JSON.parse(read('package.json'))
+  assert.equal(manifest.name, 'dsh-search-chat')
+  assert.match(manifest.version, /^\d+\.\d+\.\d+$/)
+  assert.equal(manifest.type, 'module')
+  assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')
+  assert.equal(manifest.dsh.client.platform, 'web')
+  assert.ok(manifest.dsh.client.inject.includes('@deepseek-ai/dsh-client-locale'))
+  assert.ok(manifest.engines.dsh.startsWith('>=0.2.2'))
+  assert.equal(manifest.dependencies, undefined, 'runtime dependencies must stay empty')
+  assert.equal(existsSync(join(root, manifest.exports['./client'])), true)
+  assert.equal(existsSync(join(root, manifest.icon)), true)
+})
+
+test('bundle patch inserts a row named after the package', () => {
+  const patch = read('cordis.patch.yml')
+  assert.match(patch, /- insert:/)
+  assert.match(patch, /id: dsh-search-chat/)
+  assert.match(patch, /name: dsh-search-chat/)
+})
+
+test('client module uses the module loader contract', () => {
+  const source = read('lib/client.js')
+  assert.match(source, /window\.__ModuleLoader__\.load\(/)
+  assert.match(source, /id: 'dsh-search-chat'/)
+  assert.match(source, /inject: \['slots'\]/)
+  assert.match(source, /sidebarRightTabs/)
+})
+
+test('icon is a square SVG', () => {
+  const icon = read('icon.svg')
+  assert.match(icon, /<svg[^>]*viewBox="0 0 64 64"/)
+  assert.match(icon, /<\/svg>/)
+})
+
+test('docs required for an open-source release exist', () => {
+  for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE', 'docs/API-NOTES.md', 'docs/ROADMAP.md']) {
+    assert.equal(existsSync(join(root, file)), true, `${file} is missing`)
+  }
+})
