@@ -1,6 +1,6 @@
 {
   "name": "dsh-search-chat",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "DeepSeek Harness 右侧栏会话搜索：跨工作区字面检索，支持以日期为中心向上下翻看聊天记录、搜索历史与本地结果缓存，可自定义关键词高亮与面板背景。",
   "type": "module",
   "private": false,

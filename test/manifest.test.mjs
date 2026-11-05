@@ -55,13 +55,14 @@ test('date popover and history controls stay wired', () => {
   for (const token of [
     '.dsc-head{display:flex;flex-direction:column;gap:6px;position:relative}',
     "'history.delete': '删除'",
-    'dsc-history-del dsc-danger',
+    'dsc-history-del',
     "'aria-expanded': calendarOpen",
     "className: 'dsc-calendar', ref: calendarRef",
   ]) {
     assert.ok(client.includes(token), `client must contain ${token}`)
   }
   assert.match(client, /max-height:min\(60vh,420px\)/)
+  assert.match(client, /\.dsc-history-del\{[^}]*color:#d5d8dd/)
   assert.match(client, /\.dsc-danger\{color:#e5484d\}/)
 })
 

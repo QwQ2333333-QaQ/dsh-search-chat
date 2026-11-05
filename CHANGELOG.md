@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-11-05
+
+### Changed
+
+- The per-history delete "✕" now uses a gray-white color instead of red; the
+  clear-all confirmation keeps its red accent.
+
 ## [0.4.0] - 2026-11-05
 
 ### Added
