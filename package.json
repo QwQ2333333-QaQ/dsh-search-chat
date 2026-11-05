@@ -1,11 +1,19 @@
 {
   "name": "dsh-search-chat",
-  "version": "0.1.0",
-  "description": "DeepSeek Harness 右侧栏会话搜索：跨全部工作区按字符匹配查找聊天记录，点击结果跳到对应会话的消息附近。",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness 右侧栏会话搜索：跨全部工作区按字符匹配查找聊天记录，点击跳到对应会话的消息附近，可自定义关键词高亮与面板背景。",
   "type": "module",
   "private": false,
   "main": "lib/index.js",
   "icon": "./icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QwQ2333333-QaQ/dsh-search-chat.git"
+  },
+  "homepage": "https://github.com/QwQ2333333-QaQ/dsh-search-chat#readme",
+  "bugs": {
+    "url": "https://github.com/QwQ2333333-QaQ/dsh-search-chat/issues"
+  },
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",

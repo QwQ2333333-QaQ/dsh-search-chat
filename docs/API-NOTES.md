@@ -24,9 +24,24 @@ Optional: `ctx.get('workspaceRegistry').list()` maps workspace paths to titles.
 ## Host: HTTP routes
 
 `ctx.webServer.register({ kind: 'exact', path, handler(req, res) })` returns a
-disposer. Handlers own the full response. This plugin registers five exact
+disposer. Handlers own the full response. This plugin registers six exact
 paths under `/dsh-search-chat/*` (`status`, `sessions`, `search`, `context`,
-`turn`) and gates each request itself.
+`turn`, `settings`) and gates each request itself.
+
+Appearance settings are stored by the Host in
+`$DSH_HOME/.dsh-search-chat.json` (atomic tmp+rename write). The client owns
+presets and defaults; the Host only validates and normalizes the values it
+receives, so the file can never inject invalid colors or unknown fields.
+
+## Host reload caveat
+
+`WebServer.register` rejects a duplicate `(kind, path)` pair, and a hot-reloaded
+module instance can leave its routes registered until the old fiber is fully
+torn down. The plugin therefore keeps a process-wide cleanup handle
+(`Symbol.for('dsh-search-chat.host.cleanup')`) and catches per-route duplicate
+errors so a reload cannot fail the whole entry. Restarting the DSH client once
+after host-side edits is still the reliable way to clear residual route
+registrations.
 
 ## Client: right sidebar tabs
 

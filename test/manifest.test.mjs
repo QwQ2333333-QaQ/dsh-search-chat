@@ -36,6 +36,20 @@ test('client module uses the module loader contract', () => {
   assert.match(source, /sidebarRightTabs/)
 })
 
+test('appearance contract: configurable CSS variables and settings route', () => {
+  const client = read('lib/client.js')
+  for (const token of ['--dsc-mark-bg', '--dsc-mark-fg', '--dsc-panel-bg', "'#ffd54f'", 'dsc-settings']) {
+    assert.ok(client.includes(token), `client must define ${token}`)
+  }
+  assert.ok(client.includes("settings: '/dsh-search-chat/settings'"))
+  assert.ok(existsSync(join(root, 'lib/settings.js')))
+  const protocol = read('lib/protocol.js')
+  assert.match(protocol, /settings: '\/dsh-search-chat\/settings'/)
+  const host = read('lib/index.js')
+  assert.match(host, /readSettings/)
+  assert.match(host, /writeSettings/)
+})
+
 test('icon is a square SVG', () => {
   const icon = read('icon.svg')
   assert.match(icon, /<svg[^>]*viewBox="0 0 64 64"/)

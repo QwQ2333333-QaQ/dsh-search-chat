@@ -76,9 +76,22 @@ if (!existsSync(join(root, 'lib/index.js'))) {
   const host = read('lib/index.js')
   if (!/export const inject = \['webServer'\]/.test(host)) fail('lib/index.js must inject webServer')
   if (!/export function apply\(/.test(host)) fail('lib/index.js must export apply()')
+  if (!/readSettings/.test(host) || !/writeSettings/.test(host)) fail('lib/index.js must wire the settings routes')
 }
 
-// 5) Docs.
+// 5) Appearance settings module and route vocabulary.
+if (!existsSync(join(root, 'lib/settings.js'))) {
+  fail('lib/settings.js is missing')
+} else {
+  const settings = read('lib/settings.js')
+  if (!/export function sanitizeTheme/.test(settings)) fail('lib/settings.js must export sanitizeTheme')
+  if (!/export async function readSettings/.test(settings)) fail('lib/settings.js must export readSettings')
+  if (!/export async function writeSettings/.test(settings)) fail('lib/settings.js must export writeSettings')
+  const protocol = read('lib/protocol.js')
+  if (!/settings: '\/dsh-search-chat\/settings'/.test(protocol)) fail('protocol must declare the settings route')
+}
+
+// 6) Docs.
 for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE']) {
   if (!existsSync(join(root, file))) fail(`${file} is missing`)
 }

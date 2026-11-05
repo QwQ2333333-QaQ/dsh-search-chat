@@ -3,6 +3,8 @@
 DeepSeek Harness（DSH）右侧栏的**会话搜索**插件：跨全部工作区、对聊天记录做**字面匹配**，结果按时间排列；点击任意一条即可打开对应会话并跳到那条消息附近。
 
 > v0.1.0 只做字符匹配（整段短语 / 全部词 / 任一词），**不引入语料库、不下载模型、不调用外部 API**。
+>
+> 仓库：<https://github.com/QwQ2333333-QaQ/dsh-search-chat>
 
 ## 功能
 
@@ -11,7 +13,8 @@ DeepSeek Harness（DSH）右侧栏的**会话搜索**插件：跨全部工作区
 - ✅ 结果可信：先走索引找候选，再对每条命中**回读原文做字面校验**；索引漏检时自动退化为逐会话字面扫描。
 - 🕒 按时间排序：支持时间正序/倒序，结果按天分组。
 - 🎯 点击跳转：打开会话 → 加载到目标 seq → 滚动到匹配消息并高亮 2.4 秒；失败会明确提示（不会静默）。
-- 🌗 主题中立：沿用宿主文字颜色，深/浅色主题下都可读。
+- 🎨 可自定义外观：关键词高亮底色/文字色/加粗、整个搜索面板背景色与不透明度、面板文字色，带预设与恢复默认；设置持久化保存。
+- 🌗 主题中立：默认透明背景继承宿主主题，高亮采用高对比亮黄 + 深色文字，深/浅色皮肤与壁纸下都清晰。
 - 🌐 中英文文案。
 
 ## 环境要求
@@ -54,6 +57,22 @@ plugin_manager remove_bundle  target = dsh-search-chat
 
 状态栏会显示命中总数、耗时、以及这次是用「索引」还是「扫描」得到的。
 
+## 外观与高亮设置
+
+点击标题右侧的 **⚙** 展开「外观设置」：
+
+| 设置 | 默认 | 说明 |
+|---|---|---|
+| 高亮底色 | `#ffd54f`（亮黄） | 命中关键词的背景色，附 1px 深色描边，避免与皮肤背景混在一起 |
+| 高亮文字 | 自动 | 默认按底色亮度自动取黑/白，保证对比度；也可以手动指定 |
+| 关键词加粗 | 开 | 关闭后只靠底色区分 |
+| 面板背景 | 透明 | 想更好读可以选一个颜色，并用滑条调整不透明度 |
+| 面板文字 | 继承 | 选深色面板背景后建议改为浅色文字 |
+| 预设 | 默认 / 高对比 / 柔和 | 一键切换整套高亮方案 |
+| 恢复默认 | — | 回到透明背景 + 亮黄高亮 |
+
+改动立即生效，约 0.5 秒后自动保存到 `$DSH_HOME/.dsh-search-chat.json`（刷新页面、重启客户端、重装插件都会保留）。保存失败时界面会提示「仅本次生效」，不影响搜索。
+
 ## 已知限制
 
 - **字面匹配**：不会理解同义词或语义，找「大意」请换几个关键词；语义检索在路线图 0.3.0（可选、默认关闭）。
@@ -77,17 +96,18 @@ npm test           # node:test 单元测试（检索核心 + 服务编排 + 清�
 目录：
 
 ```text
-lib/index.js         宿主插件：4 条本机 JSON 路由
+lib/index.js         宿主插件：6 条本机 JSON 路由
 lib/search-service.js 检索编排（索引候选 → 字面校验 → 扫描兜底）
 lib/search-core.js    纯函数：匹配/片段/排序/分页
+lib/settings.js       外观设置的校验、读取与原子写入
 lib/fence.js          回环与同源校验
 lib/protocol.js       路由与常量
-lib/client.js         浏览器半侧：右侧栏 tab + 搜索面板 + 跳转
+lib/client.js         浏览器半侧：右侧栏 tab + 搜索面板 + 外观设置 + 跳转
 test/                 node:test
 docs/                 API 备注与路线图
 ```
 
-开发循环：改代码 → `npm test` → 用插件管理器重装本目录 → 重启客户端验证。版本按语义化递增并更新 `CHANGELOG.md`。
+开发循环：改客户端（`lib/client.js`）→ 刷新页面；改宿主（`lib/index.js` 等）→ **重启 DSH 客户端**再验证。只重装插件而不重启时，DSH 的热重载可能在 Host 路由表里留下上一实例的注册，导致新实例的路由被判重复（插件已做自愈清理与重复容错，但首次仍建议重启一次）；版本按语义化递增并更新 `CHANGELOG.md`。
 
 ## License
 
@@ -108,6 +128,8 @@ to the matched message with a short highlight.
   are read, returned, or logged.
 - Jumping relies on the product's internal `data-chat-*` row attributes; the
   selectors are isolated and documented in `docs/API-NOTES.md`.
+- Appearance is configurable (highlight background/text/bold, panel background
+  and opacity, panel text) with presets; settings persist under `$DSH_HOME`.
 
 Install the absolute package directory with the DSH plugin manager, restart the
 client if the tab does not appear immediately.
