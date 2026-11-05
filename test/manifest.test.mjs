@@ -47,7 +47,25 @@ test('appearance contract: configurable CSS variables and settings route', () =>
   assert.match(protocol, /settings: '\/dsh-search-chat\/settings'/)
   const host = read('lib/index.js')
   assert.match(host, /readSettings/)
-  assert.match(host, /writeSettings/)
+  assert.match(host, /updateSettings/)
+})
+
+test('search-scope contract: per-session/scan limits and date window reach the protocol', () => {
+  const protocol = read('lib/protocol.js')
+  for (const token of ['perSessionMax', 'scanSessionsMax', 'dateSpanMaxDays', 'normalizeTimeRange', 'clampPerSession', 'clampScanSessions']) {
+    assert.ok(protocol.includes(token), `protocol must define ${token}`)
+  }
+  const service = read('lib/search-service.js')
+  for (const token of ['timeFrom', 'timeTo', 'perSession', 'scanSessions', 'sessionFilters', 'eventFilters', 'effective']) {
+    assert.ok(service.includes(token), `search service must reference ${token}`)
+  }
+  const client = read('lib/client.js')
+  for (const token of ['timeMode', 'timeFrom', 'scanSessions', 'perSession', 'search.scope']) {
+    assert.ok(client.includes(token), `client must reference ${token}`)
+  }
+  const settings = read('lib/settings.js')
+  assert.match(settings, /sanitizeSearch/)
+  assert.match(settings, /updateSettings/)
 })
 
 test('icon is a square SVG', () => {

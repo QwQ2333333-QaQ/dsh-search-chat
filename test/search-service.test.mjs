@@ -6,12 +6,13 @@ function doc(sessionId, seq, text, time, turn, type = 'user/message') {
   return { sessionId, seq, text, time, turn, type }
 }
 
-function fakeQuery({ sessions, documents, titles = {} }) {
+function fakeQuery({ sessions, documents, titles = {}, calls = null }) {
   return {
     async listSessions() {
       return sessions.map((header) => ({ header, live: false, persisted: true }))
     },
-    async searchSessions({ query, limit = 10 }) {
+    async searchSessions({ query, limit = 10, sessionFilters, eventFilters }) {
+      calls?.searchSessions.push({ query, sessionFilters, eventFilters })
       const items = sessions
         .filter((header) => (documents[header.id] ?? []).some((item) => item.text.includes(query)))
         .slice(0, limit)
@@ -24,8 +25,11 @@ function fakeQuery({ sessions, documents, titles = {} }) {
       return { items }
     },
     async filterEvents(sessionId, filters) {
+      calls?.filterEvents.push({ sessionId, filters })
+      const timeFilter = filters.find((filter) => filter.kind === 'time')
       return (documents[sessionId] ?? []).filter((item) =>
-        filters.some((filter) => filter.kind === 'text' && item.text.includes(filter.text)))
+        filters.some((filter) => filter.kind === 'text' && item.text.includes(filter.text))
+        && (timeFilter === undefined || (item.time >= timeFilter.from && item.time <= timeFilter.to)))
     },
     async readEvent({ sessionId, seq }) {
       const found = (documents[sessionId] ?? []).find((item) => item.seq === seq)
@@ -180,4 +184,79 @@ test('sessions lists titles and workspace labels', async () => {
 test('empty query is rejected as a bad request', async () => {
   const service = makeService()
   await assert.rejects(() => service.search({ query: '   ' }), (error) => error.statusCode === 400)
+})
+
+function makeRecordingService(fixtures = {}) {
+  const calls = { searchSessions: [], filterEvents: [] }
+  const service = createSearchService({
+    getSessionQuery: () => fakeQuery({
+      sessions: fixtures.sessions ?? sessions,
+      documents: fixtures.documents ?? documents,
+      calls,
+    }),
+    getWorkspaceRegistry: () => ({ list: () => [{ path: 'D:\\work\\alpha', title: 'Alpha 项目' }] }),
+  })
+  return { service, calls }
+}
+
+test('a date window is pushed into literal scans and prunes later-created sessions', async () => {
+  const fixtureSessions = [
+    ...sessions,
+    { id: 's3', version: 4, createdAt: 90_000, cwd: 'D:\\work\\alpha', isSeeded: false },
+  ]
+  const fixtureDocuments = {
+    ...documents,
+    s3: [doc('s3', 1, '插件 late arrival', 95_000, 1)],
+  }
+  const { service, calls } = makeRecordingService({ sessions: fixtureSessions, documents: fixtureDocuments })
+  const result = await service.search({ query: '插件', timeFrom: 1000, timeTo: 5000, scanSessions: 10, perSession: 5 })
+  assert.equal(result.effective.timeFrom, 1000)
+  assert.equal(result.effective.timeTo, 5000)
+  assert.equal(result.sessions, 2, 'a session created after the window is pruned')
+  assert.ok(result.items.length > 0)
+  assert.ok(result.items.every((hit) => hit.time >= 1000 && hit.time <= 5000))
+  assert.ok(calls.filterEvents.some((call) =>
+    call.filters.some((filter) => filter.kind === 'time' && filter.from === 1000 && filter.to === 5000)))
+})
+
+test('the index path uses the official filter field names', async () => {
+  const { service, calls } = makeRecordingService()
+  await service.search({ query: '插件', cwd: 'D:\\work\\alpha', timeFrom: 1000, timeTo: 5000 })
+  const call = calls.searchSessions[0]
+  assert.ok(Array.isArray(call.sessionFilters))
+  assert.ok(call.sessionFilters.some((filter) => filter.kind === 'cwd'))
+  assert.ok(call.sessionFilters.some((filter) => filter.kind === 'created-at' && filter.to === 5000))
+  assert.ok(call.eventFilters.some((filter) => filter.kind === 'time' && filter.from === 1000))
+})
+
+test('per-session and scan caps are clamped and echoed', async () => {
+  const { service } = makeRecordingService()
+  const clamped = await service.search({ query: '插件', perSession: 999, scanSessions: 9999 })
+  assert.equal(clamped.effective.perSession, 20)
+  assert.equal(clamped.effective.scanSessions, 500)
+
+  const limited = await service.search({ query: '插件', perSession: 1 })
+  assert.equal(limited.total, 2, 'one hit per matching session')
+})
+
+test('a small scan cap is clamped, and a larger corpus reports truncation', async () => {
+  const { service } = makeRecordingService()
+  const clamped = await service.search({ query: '插件', scanSessions: 1 })
+  assert.equal(clamped.effective.scanSessions, 10, 'the minimum scanned-session cap is 10')
+
+  const manySessions = Array.from({ length: 11 }, (_, index) => ({
+    id: `m${index}`,
+    version: 4,
+    createdAt: 1000 + index,
+    cwd: 'D:\\work\\alpha',
+    isSeeded: false,
+  }))
+  const manyDocuments = Object.fromEntries(manySessions.map((session, index) => [
+    session.id,
+    [doc(session.id, 1, `插件 hit ${index}`, 1000 + index, 1)],
+  ]))
+  const { service: wideService } = makeRecordingService({ sessions: manySessions, documents: manyDocuments })
+  const truncated = await wideService.search({ query: '插件', scanSessions: 10 })
+  assert.equal(truncated.truncated, true)
+  assert.equal(truncated.sessions, 11)
 })

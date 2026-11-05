@@ -3,6 +3,31 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-05
+
+### Added
+
+- Search-scope controls in the settings panel: hits per session, sessions to
+  scan, and results per page; persisted with the other settings.
+- Date-range search: pick a date and an optional ±N-day window (0/1/3/7, default
+  3); the window is pushed down as official `time`/`created-at` filters, so
+  sessions created after the window are pruned before scanning.
+- Host request fields `perSession`, `scanSessions`, `timeFrom`, `timeTo`, and an
+  `effective` echo in every response; `/status.limits` reports the new bounds.
+- Settings file upgraded to version 2 with a `search` section; v1 files are read
+  and upgraded on the next save.
+
+### Fixed
+
+- Index-candidate search now sends the official `sessionFilters` /
+  `eventFilters` fields (previously it sent `filters`, so the index path rarely
+  contributed candidates).
+
+### Changed
+
+- The hard-coded per-session/per-scan caps are now request-scoped with clamped
+  bounds; defaults remain 8 hits/session and 80 scanned sessions.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added

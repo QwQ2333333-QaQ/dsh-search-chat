@@ -15,14 +15,22 @@
 - Presets (default / high contrast / soft), reset, and Host-persisted settings.
 - Default highlight changed to a high-contrast amber mark.
 
-## 0.3.0 — filters and saved searches
+## 0.3.0 — search scope and date windows (current)
 
-- Filter by role (user/assistant/tool), date range, session, workspace, model.
+- Configurable hits per session, scanned sessions, and results per page.
+- Date search with a ±N-day window (0/1/3/7), pushed down as official
+  `time` / `created-at` filters; sessions created after the window are pruned.
+- `effective` echo in responses and new `/status.limits` bounds.
+- Settings file upgraded to v2 with a `search` section.
+
+## 0.4.0 — filters and saved searches
+
+- Filter by role (user/assistant/tool), session, workspace, model.
 - Search within one session from the current session header.
 - Saved queries and recent searches.
 - Export results as Markdown/JSON.
 
-## 0.4.0 — optional semantic search (opt-in, off by default)
+## 0.5.0 — optional semantic search (opt-in, off by default)
 
 - Local embedding backend or an operator-configured HTTP endpoint.
 - Chunked index stored under `$DSH_HOME/dsh-search-chat/` with incremental updates.

@@ -9,17 +9,33 @@ npm (`@deepseek-ai/*@0.2.2-rc.1`).
 `ctx.get('sessionQuery')` (optional; provided by `dsh-session-query-sqlite`):
 
 - `listSessions(): Promise<SessionRecord[]>`
-- `searchSessions({ query, filters?, limit?, cursor? }): Promise<SessionSearchPage<SessionSearchHit>>`
+- `searchSessions({ query, sessionFilters?, eventFilters?, limit?, cursor? }): Promise<SessionSearchPage<SessionSearchHit>>`
 - `searchEvents({ sessionId, query, filters?, limit?, cursor? }): Promise<SessionEventSearchPage>`
-- `filterEvents(sessionId, [{ kind: 'text', text }]): Promise<SessionEventSearchDocument[]>`
+- `filterEvents(sessionId, filters): Promise<SessionEventSearchDocument[]>`
 - `readEvent({ sessionId, seq, before?, after? }): Promise<SessionEventWindow>`
 - `readTitleSnapshots(ids): Promise<SessionTitleObservationResult[]>`
 
 `filterEvents`' `{ kind: 'text' }` predicate is documented as a **literal-text**
 filter, which is why this plugin can guarantee character matching even if the
-full-text index tokenizes CJK poorly.
+full-text index tokenizes CJK poorly. Filters accept `{ kind: 'time', from, to }`
+for event windows and `{ kind: 'created-at', from, to }` for sessions, so the
+date feature is pushed down instead of filtering whole results afterwards.
 
 Optional: `ctx.get('workspaceRegistry').list()` maps workspace paths to titles.
+
+## Search request fields (v0.3)
+
+`POST /dsh-search-chat/search` accepts `query`, `match`, `order`, `limit`,
+`offset`, `cwd`, plus `perSession` (1–20), `scanSessions` (10–500), and the
+optional inclusive window `timeFrom`/`timeTo` (epoch ms, at most 31 days). The
+response echoes the clamped values in `effective` and reports
+`sessions`/`truncated` for the scanned corpus.
+
+## Local-only by design
+
+Search runs entirely against local session logs and the local `sessionQuery`
+index. The plugin never calls an external API, uploads session text, or downloads
+models; the future optional semantic mode stays opt-in and off by default.
 
 ## Host: HTTP routes
 
@@ -28,10 +44,11 @@ disposer. Handlers own the full response. This plugin registers six exact
 paths under `/dsh-search-chat/*` (`status`, `sessions`, `search`, `context`,
 `turn`, `settings`) and gates each request itself.
 
-Appearance settings are stored by the Host in
-`$DSH_HOME/.dsh-search-chat.json` (atomic tmp+rename write). The client owns
-presets and defaults; the Host only validates and normalizes the values it
-receives, so the file can never inject invalid colors or unknown fields.
+Appearance and search-scope settings are stored by the Host in
+`$DSH_HOME/.dsh-search-chat.json` (atomic tmp+rename write, file format v2:
+`{ version, theme, search }`). The client owns presets and defaults; the Host
+only validates and normalizes the values it receives, so the file can never
+inject invalid colors, unknown fields, or out-of-range limits.
 
 ## Host reload caveat
 
