@@ -50,22 +50,39 @@ test('appearance contract: configurable CSS variables and settings route', () =>
   assert.match(host, /updateSettings/)
 })
 
-test('search-scope contract: per-session/scan limits and date window reach the protocol', () => {
+test('date popover and history controls stay wired', () => {
+  const client = read('lib/client.js')
+  for (const token of [
+    '.dsc-head{display:flex;flex-direction:column;gap:6px;position:relative}',
+    "'history.delete': '删除'",
+    'dsc-history-del dsc-danger',
+    "'aria-expanded': calendarOpen",
+    "className: 'dsc-calendar', ref: calendarRef",
+  ]) {
+    assert.ok(client.includes(token), `client must contain ${token}`)
+  }
+  assert.match(client, /max-height:min\(60vh,420px\)/)
+  assert.match(client, /\.dsc-danger\{color:#e5484d\}/)
+})
+
+test('timeline, history and cache contracts are wired', () => {
   const protocol = read('lib/protocol.js')
-  for (const token of ['perSessionMax', 'scanSessionsMax', 'dateSpanMaxDays', 'normalizeTimeRange', 'clampPerSession', 'clampScanSessions']) {
+  for (const token of ['timeline:', 'calendar:', 'history:', 'TIMELINE', 'FIXED']) {
     assert.ok(protocol.includes(token), `protocol must define ${token}`)
   }
+  for (const file of ['lib/cache-store.js', 'lib/history-store.js', 'lib/calendar-index.js', 'lib/paths.js']) {
+    assert.equal(existsSync(join(root, file)), true, `${file} is missing`)
+  }
   const service = read('lib/search-service.js')
-  for (const token of ['timeFrom', 'timeTo', 'perSession', 'scanSessions', 'sessionFilters', 'eventFilters', 'effective']) {
+  for (const token of ['timeline', 'calendar', 'history', 'corpusSignature', 'cached']) {
     assert.ok(service.includes(token), `search service must reference ${token}`)
   }
   const client = read('lib/client.js')
-  for (const token of ['timeMode', 'timeFrom', 'scanSessions', 'perSession', 'search.scope']) {
+  for (const token of ['timeline', 'calendar', 'history', 'dsc-calendar', 'dsc-history-item']) {
     assert.ok(client.includes(token), `client must reference ${token}`)
   }
   const settings = read('lib/settings.js')
-  assert.match(settings, /sanitizeSearch/)
-  assert.match(settings, /updateSettings/)
+  assert.match(settings, /SETTINGS_VERSION = 3/)
 })
 
 test('icon is a square SVG', () => {

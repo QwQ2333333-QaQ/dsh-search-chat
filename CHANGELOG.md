@@ -3,6 +3,36 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-05
+
+### Added
+
+- **Timeline browsing**: picking a date loads that day ±3 days in ascending
+  order; scrolling up/down (or the load buttons) extends the window by 3 days
+  at a time, from the selected date outward.
+- **Search history**: focus popup ordered by recency, click to re-run, hover to
+  delete one entry, plus a two-step "clear all" confirmation. Stored in
+  `$DSH_HOME/dsh-search-chat/history.json`.
+- **Local result cache**: memory LRU plus atomic JSON files keyed by request and
+  guarded by a corpus signature; repeated searches return from cache with a
+  `cached` flag. Windows that include today stay memory-only.
+- **Date picker availability**: a custom month calendar dims and disables days
+  without conversations, using lightweight event times from the local index.
+- Routes `timeline`, `calendar`, `history`; settings upgraded to v3 (theme only).
+
+### Removed
+
+- The v0.3 "search scope" controls and request fields (per-session hits, scanned
+  sessions, page size); they are fixed again (8 / 80 / 40).
+
+### Fixed
+
+- The date calendar popover was positioned against the wrong ancestor and could
+  render off-screen, so "Pick a date" appeared to do nothing; it now anchors
+  under the toolbar and closes on outside click.
+- Search history panel: larger typography, hover-only red "✕" delete action, and
+  the redundant left-side title removed; clear-all confirmation stays.
+
 ## [0.3.0] - 2026-11-05
 
 ### Added

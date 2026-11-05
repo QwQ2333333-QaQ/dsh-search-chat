@@ -23,13 +23,18 @@ date feature is pushed down instead of filtering whole results afterwards.
 
 Optional: `ctx.get('workspaceRegistry').list()` maps workspace paths to titles.
 
-## Search request fields (v0.3)
+## Search request fields (v0.4)
 
-`POST /dsh-search-chat/search` accepts `query`, `match`, `order`, `limit`,
-`offset`, `cwd`, plus `perSession` (1–20), `scanSessions` (10–500), and the
-optional inclusive window `timeFrom`/`timeTo` (epoch ms, at most 31 days). The
-response echoes the clamped values in `effective` and reports
-`sessions`/`truncated` for the scanned corpus.
+- `POST /search`: `query`, `match`, `order`, `limit`, `offset`, `cwd`; fixed
+  internal caps (8 per session / 80 sessions / 40 per page). Responses carry a
+  `cached` flag.
+- `POST /timeline`: `anchorDate`, `radiusDays`, `stepDays`,
+  `direction: 'initial'|'older'|'newer'`, `windowFrom`, `windowTo`, `query`,
+  `match`. With no query only user/assistant messages are returned; with a
+  query the three literal modes filter inside the window. Responses carry
+  `window`, `hasOlder`, `hasNewer`, `cached`, `corpusSig`.
+- `GET /calendar?month=YYYY-MM`: per-day counts built from `listEvents()`.
+- `GET/POST /history`: list, add, delete or clear the stored search history.
 
 ## Local-only by design
 
@@ -40,15 +45,15 @@ models; the future optional semantic mode stays opt-in and off by default.
 ## Host: HTTP routes
 
 `ctx.webServer.register({ kind: 'exact', path, handler(req, res) })` returns a
-disposer. Handlers own the full response. This plugin registers six exact
+disposer. Handlers own the full response. This plugin registers nine exact
 paths under `/dsh-search-chat/*` (`status`, `sessions`, `search`, `context`,
-`turn`, `settings`) and gates each request itself.
+`turn`, `settings`, `timeline`, `calendar`, `history`) and gates each request
+itself.
 
-Appearance and search-scope settings are stored by the Host in
-`$DSH_HOME/.dsh-search-chat.json` (atomic tmp+rename write, file format v2:
-`{ version, theme, search }`). The client owns presets and defaults; the Host
-only validates and normalizes the values it receives, so the file can never
-inject invalid colors, unknown fields, or out-of-range limits.
+Appearance settings live in `$DSH_HOME/.dsh-search-chat.json` (format v3, theme
+only, atomic tmp+rename). Search history and result cache live in
+`$DSH_HOME/dsh-search-chat/` as atomic JSON files; the calendar index is memory
+only. None of these files touch DSH session data.
 
 ## Host reload caveat
 

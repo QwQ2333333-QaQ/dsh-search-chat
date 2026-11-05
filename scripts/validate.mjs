@@ -85,15 +85,27 @@ if (!existsSync(join(root, 'lib/settings.js'))) {
 } else {
   const settings = read('lib/settings.js')
   if (!/export function sanitizeTheme/.test(settings)) fail('lib/settings.js must export sanitizeTheme')
-  if (!/export function sanitizeSearch/.test(settings)) fail('lib/settings.js must export sanitizeSearch')
   if (!/export async function readSettings/.test(settings)) fail('lib/settings.js must export readSettings')
   if (!/export async function updateSettings/.test(settings)) fail('lib/settings.js must export updateSettings')
   const protocol = read('lib/protocol.js')
   if (!/settings: '\/dsh-search-chat\/settings'/.test(protocol)) fail('protocol must declare the settings route')
-  for (const token of ['normalizeTimeRange', 'clampPerSession', 'clampScanSessions']) {
+  for (const token of ['timeline:', 'calendar:', 'history:', 'TIMELINE', 'FIXED']) {
     if (!protocol.includes(token)) fail(`protocol must define ${token}`)
   }
 }
+
+// 6) v0.4 local stores and timeline helpers.
+for (const file of ['lib/paths.js', 'lib/cache-store.js', 'lib/history-store.js', 'lib/calendar-index.js']) {
+  if (!existsSync(join(root, file))) fail(`${file} is missing`)
+}
+const timelineSource = read('lib/calendar-index.js')
+for (const token of ['windowAround', 'shiftWindow', 'createCalendarIndex']) {
+  if (!timelineSource.includes(token)) fail(`calendar-index.js must define ${token}`)
+}
+const cacheSource = read('lib/cache-store.js')
+if (!/export function cacheKey/.test(cacheSource)) fail('cache-store.js must export cacheKey')
+const historySource = read('lib/history-store.js')
+if (!/export function createHistoryStore/.test(historySource)) fail('history-store.js must export createHistoryStore')
 
 // 6) Docs.
 for (const file of ['README.md', 'CHANGELOG.md', 'LICENSE']) {

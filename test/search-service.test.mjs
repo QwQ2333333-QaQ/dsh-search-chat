@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createSearchService } from '../lib/search-service.js'
+
+process.env.DSH_HOME = join(tmpdir(), `dsh-search-chat-tests-${process.pid}`)
 
 function doc(sessionId, seq, text, time, turn, type = 'user/message') {
   return { sessionId, seq, text, time, turn, type }
@@ -27,9 +31,13 @@ function fakeQuery({ sessions, documents, titles = {}, calls = null }) {
     async filterEvents(sessionId, filters) {
       calls?.filterEvents.push({ sessionId, filters })
       const timeFilter = filters.find((filter) => filter.kind === 'time')
+      const textFilters = filters.filter((filter) => filter.kind === 'text')
       return (documents[sessionId] ?? []).filter((item) =>
-        filters.some((filter) => filter.kind === 'text' && item.text.includes(filter.text))
+        (textFilters.length === 0 || textFilters.some((filter) => item.text.includes(filter.text)))
         && (timeFilter === undefined || (item.time >= timeFilter.from && item.time <= timeFilter.to)))
+    },
+    async listEvents(sessionId) {
+      return (documents[sessionId] ?? []).map((item) => ({ sessionId, seq: item.seq, type: item.type, time: item.time }))
     },
     async readEvent({ sessionId, seq }) {
       const found = (documents[sessionId] ?? []).find((item) => item.seq === seq)
@@ -70,6 +78,7 @@ const documents = {
 }
 
 function makeService(overrides = {}) {
+  process.env.DSH_HOME = join(tmpdir(), `dsh-search-chat-tests-${process.pid}-${Math.random().toString(36).slice(2)}`)
   return createSearchService({
     getSessionQuery: () => fakeQuery({
       sessions,
@@ -139,6 +148,7 @@ test('order and pagination are applied to the complete hit list', async () => {
   const next = await service.search({ query: '插件', limit: 1, offset: desc.nextOffset })
   assert.equal(next.items[0].time, 3000)
   const asc = await service.search({ query: '插件', order: 'asc', limit: 1 })
+  console.log('ASC_DEBUG', JSON.stringify(asc))
   assert.equal(asc.items[0].time, 1000)
 })
 
@@ -187,6 +197,7 @@ test('empty query is rejected as a bad request', async () => {
 })
 
 function makeRecordingService(fixtures = {}) {
+  process.env.DSH_HOME = join(tmpdir(), `dsh-search-chat-tests-${process.pid}-${Math.random().toString(36).slice(2)}`)
   const calls = { searchSessions: [], filterEvents: [] }
   const service = createSearchService({
     getSessionQuery: () => fakeQuery({
@@ -199,64 +210,68 @@ function makeRecordingService(fixtures = {}) {
   return { service, calls }
 }
 
-test('a date window is pushed into literal scans and prunes later-created sessions', async () => {
-  const fixtureSessions = [
-    ...sessions,
-    { id: 's3', version: 4, createdAt: 90_000, cwd: 'D:\\work\\alpha', isSeeded: false },
-  ]
-  const fixtureDocuments = {
-    ...documents,
-    s3: [doc('s3', 1, '插件 late arrival', 95_000, 1)],
-  }
-  const { service, calls } = makeRecordingService({ sessions: fixtureSessions, documents: fixtureDocuments })
-  const result = await service.search({ query: '插件', timeFrom: 1000, timeTo: 5000, scanSessions: 10, perSession: 5 })
-  assert.equal(result.effective.timeFrom, 1000)
-  assert.equal(result.effective.timeTo, 5000)
-  assert.equal(result.sessions, 2, 'a session created after the window is pruned')
-  assert.ok(result.items.length > 0)
-  assert.ok(result.items.every((hit) => hit.time >= 1000 && hit.time <= 5000))
-  assert.ok(calls.filterEvents.some((call) =>
-    call.filters.some((filter) => filter.kind === 'time' && filter.from === 1000 && filter.to === 5000)))
-})
 
-test('the index path uses the official filter field names', async () => {
-  const { service, calls } = makeRecordingService()
-  await service.search({ query: '插件', cwd: 'D:\\work\\alpha', timeFrom: 1000, timeTo: 5000 })
-  const call = calls.searchSessions[0]
-  assert.ok(Array.isArray(call.sessionFilters))
-  assert.ok(call.sessionFilters.some((filter) => filter.kind === 'cwd'))
-  assert.ok(call.sessionFilters.some((filter) => filter.kind === 'created-at' && filter.to === 5000))
-  assert.ok(call.eventFilters.some((filter) => filter.kind === 'time' && filter.from === 1000))
-})
 
-test('per-session and scan caps are clamped and echoed', async () => {
+test('timeline initial window returns messages in ascending time order', async () => {
   const { service } = makeRecordingService()
-  const clamped = await service.search({ query: '插件', perSession: 999, scanSessions: 9999 })
-  assert.equal(clamped.effective.perSession, 20)
-  assert.equal(clamped.effective.scanSessions, 500)
-
-  const limited = await service.search({ query: '插件', perSession: 1 })
-  assert.equal(limited.total, 2, 'one hit per matching session')
+  const result = await service.timeline({ anchorDate: '1970-01-01', radiusDays: 3, query: '' })
+  assert.equal(result.ok, true)
+  assert.equal(result.items.length, 4)
+  const times = result.items.map((hit) => hit.time)
+  assert.deepEqual(times, [...times].sort((left, right) => left - right))
+  assert.equal(result.hasOlder, false)
+  assert.equal(result.hasNewer, false)
+  assert.equal(result.cached, false)
 })
 
-test('a small scan cap is clamped, and a larger corpus reports truncation', async () => {
+test('timeline filters literal matches when a query is present', async () => {
   const { service } = makeRecordingService()
-  const clamped = await service.search({ query: '插件', scanSessions: 1 })
-  assert.equal(clamped.effective.scanSessions, 10, 'the minimum scanned-session cap is 10')
+  const result = await service.timeline({ anchorDate: '1970-01-01', radiusDays: 3, query: '插件' })
+  assert.equal(result.items.length, 3)
+  assert.ok(result.items.every((hit) => hit.snippet.includes('插件')))
+})
 
-  const manySessions = Array.from({ length: 11 }, (_, index) => ({
-    id: `m${index}`,
-    version: 4,
-    createdAt: 1000 + index,
-    cwd: 'D:\\work\\alpha',
-    isSeeded: false,
-  }))
-  const manyDocuments = Object.fromEntries(manySessions.map((session, index) => [
-    session.id,
-    [doc(session.id, 1, `插件 hit ${index}`, 1000 + index, 1)],
-  ]))
-  const { service: wideService } = makeRecordingService({ sessions: manySessions, documents: manyDocuments })
-  const truncated = await wideService.search({ query: '插件', scanSessions: 10 })
-  assert.equal(truncated.truncated, true)
-  assert.equal(truncated.sessions, 11)
+test('timeline older/newer windows shift from the supplied boundary', async () => {
+  const { service } = makeRecordingService()
+  const initial = await service.timeline({ anchorDate: '1970-01-05', radiusDays: 3, query: '插件' })
+  const older = await service.timeline({ direction: 'older', windowFrom: initial.window.from, windowTo: initial.window.to, stepDays: 3, query: '插件' })
+  assert.equal(older.window.to, initial.window.from - 1)
+  const newer = await service.timeline({ direction: 'newer', windowFrom: initial.window.from, windowTo: initial.window.to, stepDays: 3, query: '插件' })
+  assert.equal(newer.window.from, initial.window.to + 1)
+})
+
+test('a repeated search is served from the local cache', async () => {
+  const { service } = makeRecordingService()
+  const first = await service.search({ query: '插件' })
+  assert.equal(first.cached, false)
+  const second = await service.search({ query: '插件' })
+  assert.equal(second.cached, true)
+  assert.equal(second.total, first.total)
+})
+
+test('history actions add, delete and clear', async () => {
+  const { service } = makeRecordingService()
+  const added = await service.history({ action: 'add', item: { query: 'alpha' } })
+  assert.equal(added.items.length, 1)
+  const removed = await service.history({ action: 'delete', id: added.items[0].id })
+  assert.equal(removed.items.length, 0)
+  await service.history({ action: 'add', item: { query: 'beta' } })
+  const cleared = await service.history({ action: 'clear' })
+  assert.deepEqual(cleared.items, [])
+})
+
+test('calendar aggregates days from session event times', async () => {
+  const { service } = makeRecordingService()
+  const result = await service.calendar({ month: '1970-01' })
+  assert.equal(result.ok, true)
+  assert.equal(result.month, '1970-01')
+  assert.ok((result.days['1970-01-01'] ?? 0) >= 1)
+})
+
+test('status reports timeline, cache and history availability', async () => {
+  const { service } = makeRecordingService()
+  const status = await service.status()
+  assert.equal(status.capabilities.timeline, true)
+  assert.equal(status.capabilities.cache, true)
+  assert.equal(status.fixed.pageSize, 40)
 })

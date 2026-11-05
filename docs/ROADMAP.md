@@ -23,14 +23,22 @@
 - `effective` echo in responses and new `/status.limits` bounds.
 - Settings file upgraded to v2 with a `search` section.
 
-## 0.4.0 — filters and saved searches
+## 0.4.0 — timeline browsing, history and cache (current)
+
+- Date-centred timeline: ±3 days initial window, bidirectional extension.
+- Custom month calendar with unavailable days disabled.
+- Search history with hover delete and two-step clear.
+- Local result cache (memory + atomic JSON files, corpus signature, LRU).
+- Settings v3 (theme only); fixed search caps again.
+
+## 0.5.0 — filters and saved searches
 
 - Filter by role (user/assistant/tool), session, workspace, model.
 - Search within one session from the current session header.
 - Saved queries and recent searches.
 - Export results as Markdown/JSON.
 
-## 0.5.0 — optional semantic search (opt-in, off by default)
+## 0.6.0 — optional semantic search (opt-in, off by default)
 
 - Local embedding backend or an operator-configured HTTP endpoint.
 - Chunked index stored under `$DSH_HOME/dsh-search-chat/` with incremental updates.

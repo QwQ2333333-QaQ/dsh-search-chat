@@ -1,7 +1,7 @@
 {
   "name": "dsh-search-chat",
-  "version": "0.3.0",
-  "description": "DeepSeek Harness 右侧栏会话搜索：跨全部工作区按字符匹配查找聊天记录，点击跳到对应会话的消息附近；可调搜索条数/扫描会话数，支持指定日期附近检索，可自定义关键词高亮与面板背景。",
+  "version": "0.4.0",
+  "description": "DeepSeek Harness 右侧栏会话搜索：跨工作区字面检索，支持以日期为中心向上下翻看聊天记录、搜索历史与本地结果缓存，可自定义关键词高亮与面板背景。",
   "type": "module",
   "private": false,
   "main": "lib/index.js",
