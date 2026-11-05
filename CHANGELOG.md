@@ -14,8 +14,8 @@ All notable changes to this project are documented here. The project follows
 - Time-ordered results with day grouping, pagination, snippet highlighting,
   and source badges (index vs scan).
 - Click-to-jump: opens the session, loads history through the hit sequence,
-  scrolls to the message and flashes a highlight, with explicit failure
-  messages.
+  resolves the Agent turn lazily (one `turn` read at click time), scrolls to the
+  message and flashes a highlight, with explicit failure messages.
 - Loopback-only host routes with cross-site/Origin rejection; no credentials,
   no telemetry, no query logging.
 - zh/en UI copy, node:test unit tests, package validation script, CI workflow,

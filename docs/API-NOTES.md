@@ -24,8 +24,9 @@ Optional: `ctx.get('workspaceRegistry').list()` maps workspace paths to titles.
 ## Host: HTTP routes
 
 `ctx.webServer.register({ kind: 'exact', path, handler(req, res) })` returns a
-disposer. Handlers own the full response. This plugin registers four exact
-paths under `/dsh-search-chat/*` and gates each request itself.
+disposer. Handlers own the full response. This plugin registers five exact
+paths under `/dsh-search-chat/*` (`status`, `sessions`, `search`, `context`,
+`turn`) and gates each request itself.
 
 ## Client: right sidebar tabs
 
