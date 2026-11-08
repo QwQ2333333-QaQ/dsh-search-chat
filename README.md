@@ -1,10 +1,16 @@
 # dsh-search-chat
 
+[![npm version](https://img.shields.io/npm/v/dsh-search-chat?color=brightgreen)](https://www.npmjs.com/package/dsh-search-chat)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DSH](https://img.shields.io/badge/DSH-%E2%89%A50.2.2-2f6fed)](https://github.com/deepseek-ai/deepseek-harness)
+
 DeepSeek Harness（DSH）右侧栏的**会话搜索**插件：跨全部工作区、对聊天记录做**字面匹配**，结果按时间排列；点击任意一条即可打开对应会话并跳到那条消息附近。
 
-> v0.1.0 只做字符匹配（整段短语 / 全部词 / 任一词），**不引入语料库、不下载模型、不调用外部 API**。
+> 当前版本 **v0.4.1**：在字面搜索基础上增加了「日期时间轴」「搜索历史」「本地缓存」。
+> 仍然**不引入语料库、不下载模型、不调用外部 API**，所有检索都在本机完成。
 >
-> 仓库：<https://github.com/QwQ2333333-QaQ/dsh-search-chat>
+> - npm：<https://www.npmjs.com/package/dsh-search-chat>
+> - 仓库：<https://github.com/QwQ2333333-QaQ/dsh-search-chat>
 
 ## 功能
 
@@ -28,22 +34,30 @@ DeepSeek Harness（DSH）右侧栏的**会话搜索**插件：跨全部工作区
 
 ## 安装
 
-### 本机开发安装（推荐给开发者）
+### 从 npm 安装（推荐）
+
+已发布到 npm：<https://www.npmjs.com/package/dsh-search-chat>
+
+用 DSH 的插件管理器按包名安装（建议带上版本号，便于复现）：
+
+```text
+plugin_manager install_bundle  target = dsh-search-chat@0.4.1
+```
+
+也可以先在本机查看包内容：
+
+```bash
+npm install dsh-search-chat
+```
+
+安装完成后如果右侧栏没有立即出现，重启 DSH 客户端（宿主路由与客户端模块在启动时装载）。
+
+### 本机开发安装
 
 在本目录（`package.json` 所在目录）用 DSH 的插件管理器安装**绝对路径**：
 
 ```text
 plugin_manager install_bundle  target = D:\Deepseek Workpalcae\dsh-search-chat
-```
-
-安装完成后如果右侧栏没有立即出现，重启 DSH 客户端（宿主路由与客户端模块在启动时装载）。
-
-### 作为普通 bundle 发布后安装
-
-发布到 npm 后，用插件管理器按包名安装：
-
-```text
-plugin_manager install_bundle  target = dsh-search-chat
 ```
 
 ### 卸载
