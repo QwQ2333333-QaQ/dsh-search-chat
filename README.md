@@ -7,7 +7,6 @@
 DeepSeek Harness（DSH）右侧栏的**会话搜索**插件：跨全部工作区、对聊天记录做**字面匹配**，结果按时间排列；点击任意一条即可打开对应会话并跳到那条消息附近。
 
 > 当前版本 **v0.4.1**：在字面搜索基础上增加了「日期时间轴」「搜索历史」「本地缓存」。
-> 仍然**不引入语料库、不下载模型、不调用外部 API**，所有检索都在本机完成。
 >
 > - npm：<https://www.npmjs.com/package/dsh-search-chat>
 > - 仓库：<https://github.com/QwQ2333333-QaQ/dsh-search-chat>
